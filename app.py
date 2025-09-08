@@ -46,26 +46,30 @@ def resize_image(image, target_width=None, target_height=None, maintain_aspect_r
     
     if maintain_aspect_ratio:
         if target_width and target_height:
-            # Calculate scale factor to fit within both dimensions
+            # Calculate scale factor to fit within both dimensions (preserve aspect ratio)
             scale_w = target_width / width
             scale_h = target_height / height
-            scale = min(scale_w, scale_h)
+            scale = min(scale_w, scale_h)  # Use smaller scale to fit within bounds
             new_width = int(width * scale)
             new_height = int(height * scale)
+            logger.info(f"Aspect ratio preserved: scaled by {scale:.3f} to fit within {target_width}x{target_height}")
         elif target_width:
             # Scale based on width
             scale = target_width / width
             new_width = target_width
             new_height = int(height * scale)
+            logger.info(f"Scaled by width: {scale:.3f}")
         elif target_height:
             # Scale based on height
             scale = target_height / height
             new_width = int(width * scale)
             new_height = target_height
+            logger.info(f"Scaled by height: {scale:.3f}")
     else:
         # Use exact dimensions (may distort image)
         new_width = target_width if target_width else width
         new_height = target_height if target_height else height
+        logger.info(f"Using exact dimensions: {new_width}x{new_height} (aspect ratio may be distorted)")
     
     # Ensure minimum size of 1 pixel
     new_width = max(1, new_width)
