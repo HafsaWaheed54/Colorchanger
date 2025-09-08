@@ -33,21 +33,16 @@ function previewImage(file, previewElement) {
     reader.readAsDataURL(file);
 }
 
-// File validation
+// File validation - no size limits, support any image size
 function validateFile(file) {
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/bmp', 'image/tiff'];
-    const maxSize = 16 * 1024 * 1024; // 16MB
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/bmp', 'image/tiff', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon'];
     
     if (!allowedTypes.includes(file.type)) {
-        showNotification('Please select a valid image file (PNG, JPG, JPEG, GIF, BMP, TIFF)', 'error');
+        showNotification('Please select a valid image file (PNG, JPG, JPEG, GIF, BMP, TIFF, WEBP, ICO)', 'error');
         return false;
     }
     
-    if (file.size > maxSize) {
-        showNotification('File size must be less than 16MB', 'error');
-        return false;
-    }
-    
+    // No file size limit - support any size image
     return true;
 }
 

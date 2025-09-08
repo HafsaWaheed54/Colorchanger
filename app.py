@@ -23,13 +23,14 @@ else:
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+# No file size limit - support any size image
+# app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Removed size restriction
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp', 'ico', 'tif'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -329,9 +330,7 @@ def handle_exception(e):
 def handle_404(e):
     return jsonify({'error': 'Endpoint not found'}), 404
 
-@app.errorhandler(413)
-def handle_413(e):
-    return jsonify({'error': 'File too large. Maximum size is 16MB.'}), 413
+# Removed 413 error handler since we support any file size
 
 # For Vercel deployment
 app = app

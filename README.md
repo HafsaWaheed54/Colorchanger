@@ -9,7 +9,8 @@ A powerful Flask web application that uses AI-powered image processing to genera
 - 📱 **Modern UI**: Beautiful, responsive interface that works on all devices
 - ⚡ **Fast Processing**: Process images in seconds with optimized algorithms
 - 💾 **Instant Download**: Download your transformed designs immediately
-- 🖼️ **Multiple Formats**: Supports PNG, JPG, JPEG, GIF, BMP, and TIFF files
+- 🖼️ **Multiple Formats**: Supports PNG, JPG, JPEG, GIF, BMP, TIFF, WEBP, and ICO files
+- 📏 **Any Size**: No file size or dimension limits - process images of any resolution
 
 ## Installation
 
@@ -43,7 +44,11 @@ A powerful Flask web application that uses AI-powered image processing to genera
 - JPG/JPEG
 - GIF
 - BMP
-- TIFF
+- TIFF/TIF
+- WEBP
+- ICO
+
+**No file size or dimension limits** - process images of any resolution!
 
 ## Technical Details
 
@@ -96,9 +101,9 @@ AIProject/
 
 ## Performance
 
-- Maximum file size: 16MB
-- Processing time: 1-5 seconds (depending on image size)
-- Supported image dimensions: Up to 4K resolution
+- **No file size limits** - process images of any size
+- Processing time: 1-10 seconds (depending on image size and complexity)
+- **Any resolution supported** - from small icons to ultra-high resolution images
 
 ## Troubleshooting
 
@@ -106,8 +111,8 @@ AIProject/
 
 1. **"Could not read the image" error**:
    - Ensure the file is a valid image format
-   - Check file size (must be under 16MB)
-   - Try converting to PNG format
+   - Try converting to PNG format if the image is corrupted
+   - Check that the file is not password-protected or encrypted
 
 2. **Colors not being replaced**:
    - The algorithm works best with distinct color differences
