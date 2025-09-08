@@ -836,3 +836,82 @@ body {
         font-size: 1.5rem;
     }
 }
+
+/* Output Dimensions Styling */
+.output-dimensions {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.output-dimensions h4 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.dimension-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.dimension-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.dimension-group label {
+    font-weight: 500;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.dimension-input {
+    padding: 10px 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.dimension-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.dimension-input::placeholder {
+    color: #999;
+    font-style: italic;
+}
+
+.dimension-options {
+    margin-top: 10px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #007bff;
+}
+
+@media (max-width: 768px) {
+    .dimension-inputs {
+        gap: 12px;
+    }
+}

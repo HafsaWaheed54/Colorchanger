@@ -75,6 +75,27 @@
                             <span id="toleranceValue">30</span>
                         </div>
                         
+                        <div class="output-dimensions">
+                            <h4>Output Image Dimensions (Optional)</h4>
+                            <div class="dimension-inputs">
+                                <div class="dimension-group">
+                                    <label for="outputWidth">Width (pixels):</label>
+                                    <input type="number" id="outputWidth" name="output_width" min="1" max="10000" placeholder="Auto" class="dimension-input">
+                                </div>
+                                <div class="dimension-group">
+                                    <label for="outputHeight">Height (pixels):</label>
+                                    <input type="number" id="outputHeight" name="output_height" min="1" max="10000" placeholder="Auto" class="dimension-input">
+                                </div>
+                                <div class="dimension-options">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="maintainAspectRatio" checked>
+                                        <span class="checkmark"></span>
+                                        Maintain aspect ratio
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="preset-buttons">
                             <button type="button" class="preset-btn" data-from="#1a237e" data-to="#d32f2f">Blue → Red</button>
                             <button type="button" class="preset-btn" data-from="#d4af37" data-to="#000080">Beige → Navy</button>
@@ -218,6 +239,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 originalImage.src = e.target.result;
                 processBtn.disabled = false;
                 fileUploadArea.classList.add('file-selected');
+                
+                // Calculate aspect ratio when image loads
+                originalImage.onload = function() {
+                    originalAspectRatio = this.naturalWidth / this.naturalHeight;
+                    console.log('Original image dimensions:', this.naturalWidth, 'x', this.naturalHeight);
+                    console.log('Aspect ratio:', originalAspectRatio);
+                };
             };
             reader.readAsDataURL(file);
         }
@@ -233,6 +261,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const toleranceSlider = document.getElementById('tolerance');
     const toleranceValue = document.getElementById('toleranceValue');
     const presetButtons = document.querySelectorAll('.preset-btn');
+    
+    // Dimension inputs
+    const outputWidth = document.getElementById('outputWidth');
+    const outputHeight = document.getElementById('outputHeight');
+    const maintainAspectRatio = document.getElementById('maintainAspectRatio');
 
     // Sync color picker with hex input
     fromColorInput.addEventListener('input', function() {
@@ -264,6 +297,23 @@ document.addEventListener('DOMContentLoaded', function() {
     toleranceSlider.addEventListener('input', function() {
         toleranceValue.textContent = this.value;
     });
+
+    // Aspect ratio functionality
+    let originalAspectRatio = 1;
+    
+    function updateAspectRatio() {
+        if (maintainAspectRatio.checked && originalAspectRatio > 0) {
+            if (outputWidth.value && !outputHeight.value) {
+                outputHeight.value = Math.round(outputWidth.value / originalAspectRatio);
+            } else if (outputHeight.value && !outputWidth.value) {
+                outputWidth.value = Math.round(outputHeight.value * originalAspectRatio);
+            }
+        }
+    }
+    
+    outputWidth.addEventListener('input', updateAspectRatio);
+    outputHeight.addEventListener('input', updateAspectRatio);
+    maintainAspectRatio.addEventListener('change', updateAspectRatio);
 
     // Preset buttons
     presetButtons.forEach(button => {
@@ -301,6 +351,25 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Please enter valid hex colors (e.g., #ff0000)');
             return;
         }
+
+        // Get dimension values
+        const width = outputWidth.value ? parseInt(outputWidth.value) : null;
+        const height = outputHeight.value ? parseInt(outputHeight.value) : null;
+        
+        // Validate dimensions
+        if (width && (width < 1 || width > 10000)) {
+            alert('Width must be between 1 and 10000 pixels');
+            return;
+        }
+        if (height && (height < 1 || height > 10000)) {
+            alert('Height must be between 1 and 10000 pixels');
+            return;
+        }
+        
+        // Add dimension data to form
+        if (width) formData.append('output_width', width);
+        if (height) formData.append('output_height', height);
+        formData.append('maintain_aspect_ratio', maintainAspectRatio.checked);
 
         loadingOverlay.style.display = 'flex';
         

@@ -35,6 +35,49 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp', 'ico',
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def resize_image(image, target_width=None, target_height=None, maintain_aspect_ratio=True):
+    """
+    Resize image to target dimensions while optionally maintaining aspect ratio
+    """
+    if target_width is None and target_height is None:
+        return image
+    
+    height, width = image.shape[:2]
+    
+    if maintain_aspect_ratio:
+        if target_width and target_height:
+            # Calculate scale factor to fit within both dimensions
+            scale_w = target_width / width
+            scale_h = target_height / height
+            scale = min(scale_w, scale_h)
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+        elif target_width:
+            # Scale based on width
+            scale = target_width / width
+            new_width = target_width
+            new_height = int(height * scale)
+        elif target_height:
+            # Scale based on height
+            scale = target_height / height
+            new_width = int(width * scale)
+            new_height = target_height
+    else:
+        # Use exact dimensions (may distort image)
+        new_width = target_width if target_width else width
+        new_height = target_height if target_height else height
+    
+    # Ensure minimum size of 1 pixel
+    new_width = max(1, new_width)
+    new_height = max(1, new_height)
+    
+    logger.info(f"Resizing image from {width}x{height} to {new_width}x{new_height}")
+    
+    # Resize using OpenCV
+    resized = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_LANCZOS4)
+    
+    return resized
+
 def replace_colors(image_path, blue_to_red=True, beige_to_navy=True):
     """
     Replace colors in the image:
@@ -264,6 +307,17 @@ def upload_file():
         to_color = request.form.get('to_color', '#d32f2f')
         tolerance = int(request.form.get('tolerance', 30))
         
+        # Get output dimension options
+        output_width = request.form.get('output_width')
+        output_height = request.form.get('output_height')
+        maintain_aspect_ratio = request.form.get('maintain_aspect_ratio', 'false').lower() == 'true'
+        
+        # Convert to integers if provided
+        if output_width:
+            output_width = int(output_width)
+        if output_height:
+            output_height = int(output_height)
+        
         # Validate hex colors
         if not from_color.startswith('#') or len(from_color) != 7:
             from_color = '#1a237e'
@@ -277,6 +331,10 @@ def upload_file():
         
         # Process the image
         processed_img = replace_colors_advanced(filepath, from_color, to_color, tolerance)
+        
+        # Resize image if dimensions are specified
+        if output_width or output_height:
+            processed_img = resize_image(processed_img, output_width, output_height, maintain_aspect_ratio)
         
         # Save processed image
         output_filename = f"processed_{filename}"
