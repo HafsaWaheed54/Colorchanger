@@ -251,11 +251,48 @@ def replace_colors_advanced(image_path, from_color_hex, to_color_hex, tolerance=
     
     lab_mask = cv2.inRange(img_lab, lower_lab, upper_lab)
     
-    # Combine all masks
-    combined_mask = rgb_mask | (hsv_mask > 0) | (lab_mask > 0)
+    # Use only RGB distance for more precise color matching
+    # This prevents unwanted color replacements from HSV/LAB methods
+    combined_mask = rgb_mask
     
     # Apply color replacement
     result[combined_mask] = to_rgb
+    
+    # Convert back to BGR
+    result_bgr = cv2.cvtColor(result.astype(np.uint8), cv2.COLOR_RGB2BGR)
+    
+    return result_bgr
+
+def replace_colors_precise(image_path, from_color_hex, to_color_hex, tolerance=15):
+    """
+    Precise color replacement using only RGB distance with strict tolerance
+    """
+    # Read the image
+    img = cv2.imread(image_path)
+    if img is None:
+        raise ValueError("Could not read the image")
+    
+    # Convert hex colors to RGB
+    from_rgb = hex_to_rgb(from_color_hex)
+    to_rgb = hex_to_rgb(to_color_hex)
+    
+    # Convert to RGB
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    
+    # Create a copy for modifications
+    result = img_rgb.copy()
+    
+    # Use only RGB distance-based replacement with strict tolerance
+    img_float = img_rgb.astype(np.float32)
+    from_color = np.array(from_rgb, dtype=np.float32)
+    diff = img_float - from_color
+    distance = np.sqrt(np.sum(diff**2, axis=2))
+    
+    # Use strict tolerance for precise color matching
+    precise_mask = distance <= tolerance
+    
+    # Apply color replacement
+    result[precise_mask] = to_rgb
     
     # Convert back to BGR
     result_bgr = cv2.cvtColor(result.astype(np.uint8), cv2.COLOR_RGB2BGR)
@@ -359,7 +396,7 @@ def upload_file():
         # Get color replacement options
         from_color = request.form.get('from_color', '#1a237e')
         to_color = request.form.get('to_color', '#d32f2f')
-        tolerance = int(request.form.get('tolerance', 30))
+        tolerance = int(request.form.get('tolerance', 20))
         
         # Get output settings
         output_width_raw = request.form.get('output_width', '').strip()
@@ -394,8 +431,8 @@ def upload_file():
         logger.info(f"Output settings: width={output_width}, height={output_height}, quality={image_quality}, format={image_format}")
         logger.info(f"Maintain aspect ratio: {maintain_aspect_ratio}")
         
-        # Process the image
-        processed_img = replace_colors_advanced(filepath, from_color, to_color, tolerance)
+        # Process the image with precise color replacement
+        processed_img = replace_colors_precise(filepath, from_color, to_color, tolerance)
         
         # Resize image if dimensions are specified
         if output_width is not None or output_height is not None:
