@@ -310,6 +310,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: formData
             });
 
+            // Check if response is ok
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                throw new Error('Server returned non-JSON response. Please try again.');
+            }
+
             const result = await response.json();
             
             if (result.success) {
@@ -321,6 +334,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Error: ' + result.error);
             }
         } catch (error) {
+            console.error('Upload error:', error);
             alert('Error processing image: ' + error.message);
         } finally {
             loadingOverlay.style.display = 'none';

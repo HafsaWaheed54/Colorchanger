@@ -215,6 +215,16 @@ def index():
 def health():
     return jsonify({'status': 'healthy', 'message': 'Design Color Variant Generator is running'})
 
+@app.route('/test')
+def test():
+    return jsonify({
+        'status': 'success',
+        'message': 'Test endpoint working',
+        'environment': 'Vercel' if os.environ.get('VERCEL') else 'Local',
+        'upload_folder': app.config['UPLOAD_FOLDER'],
+        'output_folder': app.config['OUTPUT_FOLDER']
+    })
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
@@ -308,6 +318,20 @@ def download_file(filename):
 @app.route('/demo')
 def demo():
     return render_template('demo.html')
+
+# Global error handler to ensure JSON responses
+@app.errorhandler(Exception)
+def handle_exception(e):
+    logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+    return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+
+@app.errorhandler(404)
+def handle_404(e):
+    return jsonify({'error': 'Endpoint not found'}), 404
+
+@app.errorhandler(413)
+def handle_413(e):
+    return jsonify({'error': 'File too large. Maximum size is 16MB.'}), 413
 
 # For Vercel deployment
 app = app
