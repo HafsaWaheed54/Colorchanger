@@ -39,10 +39,14 @@ def resize_image(image, target_width=None, target_height=None, maintain_aspect_r
     """
     Resize image to target dimensions while optionally maintaining aspect ratio
     """
+    logger.info(f"resize_image called with: target_width={target_width}, target_height={target_height}, maintain_aspect_ratio={maintain_aspect_ratio}")
+    
     if target_width is None and target_height is None:
+        logger.info("No target dimensions provided, returning original image")
         return image
     
     height, width = image.shape[:2]
+    logger.info(f"Original image dimensions: {width}x{height}")
     
     if maintain_aspect_ratio:
         if target_width and target_height:
@@ -67,9 +71,11 @@ def resize_image(image, target_width=None, target_height=None, maintain_aspect_r
             logger.info(f"Scaled by height: {scale:.3f}")
     else:
         # Use exact dimensions (may distort image)
+        logger.info("EXACT DIMENSIONS MODE - aspect ratio will be ignored")
         new_width = target_width if target_width is not None else width
         new_height = target_height if target_height is not None else height
-        logger.info(f"Using exact dimensions: {new_width}x{new_height} (aspect ratio may be distorted)")
+        logger.info(f"Calculated exact dimensions: {new_width}x{new_height} (aspect ratio may be distorted)")
+        logger.info(f"Target was: {target_width}x{target_height}, Original was: {width}x{height}")
     
     # Ensure minimum size of 1 pixel
     new_width = max(1, new_width)
@@ -79,6 +85,10 @@ def resize_image(image, target_width=None, target_height=None, maintain_aspect_r
     
     # Resize using OpenCV
     resized = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_LANCZOS4)
+    
+    # Verify the actual output dimensions
+    actual_height, actual_width = resized.shape[:2]
+    logger.info(f"FINAL RESULT: Image resized to {actual_width}x{actual_height}")
     
     return resized
 
