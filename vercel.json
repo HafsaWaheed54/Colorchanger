@@ -17,10 +17,5 @@
   ],
   "env": {
     "PYTHONPATH": "$PYTHONPATH:."
-  },
-  "functions": {
-    "app.py": {
-      "runtime": "python3.11"
-    }
   }
 }
