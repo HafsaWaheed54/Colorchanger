@@ -1,0 +1,260 @@
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for
+import os
+import cv2
+import numpy as np
+from PIL import Image
+import io
+import base64
+from werkzeug.utils import secure_filename
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['OUTPUT_FOLDER'] = 'outputs'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Create directories if they don't exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def replace_colors(image_path, blue_to_red=True, beige_to_navy=True):
+    """
+    Replace colors in the image:
+    - Blue to Red (if blue_to_red is True)
+    - Beige to Navy Blue (if beige_to_navy is True)
+    """
+    # Read the image
+    img = cv2.imread(image_path)
+    if img is None:
+        raise ValueError("Could not read the image")
+    
+    # Convert BGR to RGB for easier color manipulation
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    
+    # Define color ranges for replacement
+    # Blue color range (adjust these values based on your specific image)
+    blue_lower = np.array([80, 50, 50])   # Lower bound for blue
+    blue_upper = np.array([130, 255, 255]) # Upper bound for blue
+    
+    # Beige/tan color range
+    beige_lower = np.array([180, 160, 120])  # Lower bound for beige
+    beige_upper = np.array([220, 200, 180])  # Upper bound for beige
+    
+    # Convert to HSV for better color detection
+    hsv = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2HSV)
+    
+    # Create masks for color replacement
+    if blue_to_red:
+        # Create mask for blue colors
+        blue_mask = cv2.inRange(hsv, blue_lower, blue_upper)
+        # Replace blue with red
+        img_rgb[blue_mask > 0] = [255, 0, 0]  # Red in RGB
+    
+    if beige_to_navy:
+        # Create mask for beige colors
+        beige_mask = cv2.inRange(hsv, beige_lower, beige_upper)
+        # Replace beige with navy blue
+        img_rgb[beige_mask > 0] = [0, 0, 128]  # Navy blue in RGB
+    
+    # Convert back to BGR for saving
+    img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+    
+    return img_bgr
+
+def hex_to_rgb(hex_color):
+    """Convert hex color to RGB tuple"""
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+def rgb_to_hex(rgb):
+    """Convert RGB tuple to hex color"""
+    return '#{:02x}{:02x}{:02x}'.format(int(rgb[0]), int(rgb[1]), int(rgb[2]))
+
+def replace_colors_custom(image_path, from_color_hex, to_color_hex, tolerance=30):
+    """
+    Custom color replacement using user-defined colors
+    """
+    # Read the image
+    img = cv2.imread(image_path)
+    if img is None:
+        raise ValueError("Could not read the image")
+    
+    # Convert hex colors to RGB
+    from_rgb = hex_to_rgb(from_color_hex)
+    to_rgb = hex_to_rgb(to_color_hex)
+    
+    # Convert BGR to RGB for processing
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    
+    # Create a copy for modifications
+    result = img_rgb.copy()
+    
+    # Calculate color distance for each pixel
+    # Convert to float for better precision
+    img_float = img_rgb.astype(np.float32)
+    from_color = np.array(from_rgb, dtype=np.float32)
+    
+    # Calculate Euclidean distance in RGB space
+    diff = img_float - from_color
+    distance = np.sqrt(np.sum(diff**2, axis=2))
+    
+    # Create mask based on tolerance
+    mask = distance <= tolerance
+    
+    # Apply color replacement
+    result[mask] = to_rgb
+    
+    # Convert back to BGR
+    result_bgr = cv2.cvtColor(result.astype(np.uint8), cv2.COLOR_RGB2BGR)
+    
+    return result_bgr
+
+def replace_colors_advanced(image_path, from_color_hex, to_color_hex, tolerance=30):
+    """
+    Advanced color replacement using multiple color space conversions
+    """
+    # Read the image
+    img = cv2.imread(image_path)
+    if img is None:
+        raise ValueError("Could not read the image")
+    
+    # Convert hex colors to RGB
+    from_rgb = hex_to_rgb(from_color_hex)
+    to_rgb = hex_to_rgb(to_color_hex)
+    
+    # Convert to different color spaces for better color detection
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    img_lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+    
+    # Create a copy for modifications
+    result = img_rgb.copy()
+    
+    # Method 1: RGB distance-based replacement
+    img_float = img_rgb.astype(np.float32)
+    from_color = np.array(from_rgb, dtype=np.float32)
+    diff = img_float - from_color
+    distance = np.sqrt(np.sum(diff**2, axis=2))
+    rgb_mask = distance <= tolerance
+    
+    # Method 2: HSV-based replacement for better color matching
+    from_hsv = cv2.cvtColor(np.uint8([[from_rgb]]), cv2.COLOR_RGB2HSV)[0][0]
+    
+    # Create HSV range based on tolerance
+    h_tolerance = int(tolerance * 0.5)  # Hue tolerance
+    s_tolerance = int(tolerance * 1.5)  # Saturation tolerance
+    v_tolerance = int(tolerance * 1.5)  # Value tolerance
+    
+    lower_hsv = np.array([
+        max(0, from_hsv[0] - h_tolerance),
+        max(0, from_hsv[1] - s_tolerance),
+        max(0, from_hsv[2] - v_tolerance)
+    ])
+    upper_hsv = np.array([
+        min(179, from_hsv[0] + h_tolerance),
+        min(255, from_hsv[1] + s_tolerance),
+        min(255, from_hsv[2] + v_tolerance)
+    ])
+    
+    hsv_mask = cv2.inRange(img_hsv, lower_hsv, upper_hsv)
+    
+    # Method 3: LAB color space for better perceptual matching
+    from_lab = cv2.cvtColor(np.uint8([[from_rgb]]), cv2.COLOR_RGB2LAB)[0][0]
+    
+    lab_tolerance = int(tolerance * 1.2)
+    lower_lab = np.array([
+        max(0, from_lab[0] - lab_tolerance),
+        max(0, from_lab[1] - lab_tolerance),
+        max(0, from_lab[2] - lab_tolerance)
+    ])
+    upper_lab = np.array([
+        min(255, from_lab[0] + lab_tolerance),
+        min(255, from_lab[1] + lab_tolerance),
+        min(255, from_lab[2] + lab_tolerance)
+    ])
+    
+    lab_mask = cv2.inRange(img_lab, lower_lab, upper_lab)
+    
+    # Combine all masks
+    combined_mask = rgb_mask | (hsv_mask > 0) | (lab_mask > 0)
+    
+    # Apply color replacement
+    result[combined_mask] = to_rgb
+    
+    # Convert back to BGR
+    result_bgr = cv2.cvtColor(result.astype(np.uint8), cv2.COLOR_RGB2BGR)
+    
+    return result_bgr
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        # Get color replacement options
+        from_color = request.form.get('from_color', '#1a237e')
+        to_color = request.form.get('to_color', '#d32f2f')
+        tolerance = int(request.form.get('tolerance', 30))
+        
+        # Validate hex colors
+        if not from_color.startswith('#') or len(from_color) != 7:
+            from_color = '#1a237e'
+        if not to_color.startswith('#') or len(to_color) != 7:
+            to_color = '#d32f2f'
+        
+        # Clamp tolerance between 10 and 100
+        tolerance = max(10, min(100, tolerance))
+        
+        try:
+            # Process the image
+            processed_img = replace_colors_advanced(filepath, from_color, to_color, tolerance)
+            
+            # Save processed image
+            output_filename = f"processed_{filename}"
+            output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+            cv2.imwrite(output_path, processed_img)
+            
+            # Convert to base64 for display
+            _, buffer = cv2.imencode('.png', processed_img)
+            img_base64 = base64.b64encode(buffer).decode('utf-8')
+            
+            return jsonify({
+                'success': True,
+                'message': 'Image processed successfully',
+                'image_data': img_base64,
+                'download_url': url_for('download_file', filename=output_filename)
+            })
+            
+        except Exception as e:
+            return jsonify({'error': f'Error processing image: {str(e)}'}), 500
+    
+    return jsonify({'error': 'Invalid file type'}), 400
+
+@app.route('/download/<filename>')
+def download_file(filename):
+    return send_file(os.path.join(app.config['OUTPUT_FOLDER'], filename), as_attachment=True)
+
+@app.route('/demo')
+def demo():
+    return render_template('demo.html')
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)

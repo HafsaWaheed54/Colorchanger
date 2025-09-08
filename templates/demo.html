@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}Demo - Design Color Variant Generator{% endblock %}
+
+{% block content %}
+<div class="demo-section">
+    <div class="container">
+        <div class="demo-header">
+            <h1>See It In Action</h1>
+            <p>Watch how our AI transforms designs with color replacement</p>
+        </div>
+
+        <div class="demo-examples">
+            <div class="example-card">
+                <h3>Geometric Pattern Transformation</h3>
+                <div class="demo-images">
+                    <div class="demo-image-container">
+                        <h4>Original Design</h4>
+                        <div class="demo-image">
+                            <div class="pattern-demo original-pattern"></div>
+                        </div>
+                        <p>Dark blue background with gold geometric pattern</p>
+                    </div>
+                    <div class="arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                    <div class="demo-image-container">
+                        <h4>Color Variant</h4>
+                        <div class="demo-image">
+                            <div class="pattern-demo variant-pattern"></div>
+                        </div>
+                        <p>Red background with navy blue geometric pattern</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="example-card">
+                <h3>Color Replacement Options</h3>
+                <div class="color-options-demo">
+                    <div class="color-option">
+                        <div class="color-circle blue"></div>
+                        <span>Blue</span>
+                        <i class="fas fa-arrow-right"></i>
+                        <div class="color-circle red"></div>
+                        <span>Red</span>
+                    </div>
+                    <div class="color-option">
+                        <div class="color-circle beige"></div>
+                        <span>Beige</span>
+                        <i class="fas fa-arrow-right"></i>
+                        <div class="color-circle navy"></div>
+                        <span>Navy Blue</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-features">
+            <h2>Key Features</h2>
+            <div class="features-list">
+                <div class="feature-item">
+                    <i class="fas fa-brain"></i>
+                    <div>
+                        <h4>AI-Powered Detection</h4>
+                        <p>Advanced algorithms automatically detect and replace colors while preserving image quality</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-palette"></i>
+                    <div>
+                        <h4>Multiple Color Spaces</h4>
+                        <p>Uses HSV, RGB, and LAB color spaces for accurate color detection and replacement</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <div>
+                        <h4>Quality Preservation</h4>
+                        <p>Maintains original image quality, resolution, and fine details during color transformation</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-bolt"></i>
+                    <div>
+                        <h4>Fast Processing</h4>
+                        <p>Process images in seconds with our optimized algorithms and server infrastructure</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-section">
+            <h2>Ready to Transform Your Designs?</h2>
+            <p>Upload your image and see the magic happen</p>
+            <a href="{{ url_for('index') }}" class="cta-button">
+                <i class="fas fa-upload"></i>
+                Start Creating Variants
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.pattern-demo {
+    width: 200px;
+    height: 200px;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+}
+
+.original-pattern {
+    background: linear-gradient(45deg, #1a237e 25%, transparent 25%), 
+                linear-gradient(-45deg, #1a237e 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #1a237e 75%), 
+                linear-gradient(-45deg, transparent 75%, #1a237e 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+.original-pattern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 8px,
+        #d4af37 8px,
+        #d4af37 10px
+    );
+    opacity: 0.7;
+}
+
+.variant-pattern {
+    background: linear-gradient(45deg, #d32f2f 25%, transparent 25%), 
+                linear-gradient(-45deg, #d32f2f 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #d32f2f 75%), 
+                linear-gradient(-45deg, transparent 75%, #d32f2f 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+.variant-pattern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 8px,
+        #000080 8px,
+        #000080 10px
+    );
+    opacity: 0.7;
+}
+
+.demo-images {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.demo-image-container {
+    text-align: center;
+}
+
+.demo-image-container h4 {
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.demo-image-container p {
+    margin-top: 1rem;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.arrow {
+    font-size: 2rem;
+    color: #007bff;
+}
+
+.color-options-demo {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.color-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 12px;
+}
+
+.color-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.color-circle.blue { background-color: #1a237e; }
+.color-circle.red { background-color: #d32f2f; }
+.color-circle.beige { background-color: #d4af37; }
+.color-circle.navy { background-color: #000080; }
+
+.features-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.feature-item i {
+    font-size: 2rem;
+    color: #007bff;
+    margin-top: 0.5rem;
+}
+
+.feature-item h4 {
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.feature-item p {
+    color: #666;
+    line-height: 1.6;
+}
+
+.cta-section {
+    text-align: center;
+    padding: 4rem 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    margin: 4rem 0;
+    color: white;
+}
+
+.cta-section h2 {
+    margin-bottom: 1rem;
+    font-size: 2.5rem;
+}
+
+.cta-section p {
+    margin-bottom: 2rem;
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+.cta-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    background: white;
+    color: #667eea;
+    text-decoration: none;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+</style>
+{% endblock %}
