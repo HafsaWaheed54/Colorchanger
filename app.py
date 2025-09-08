@@ -274,9 +274,28 @@ def test():
         'output_folder': app.config['OUTPUT_FOLDER']
     })
 
+@app.route('/test-resize')
+def test_resize():
+    """Test endpoint to verify resize function works"""
+    import numpy as np
+    
+    # Create a test image (100x100)
+    test_img = np.ones((100, 100, 3), dtype=np.uint8) * 128  # Gray image
+    
+    # Test resize to 200x150
+    resized = resize_image(test_img, 200, 150, False)
+    
+    return jsonify({
+        'status': 'success',
+        'original_size': f"{test_img.shape[1]}x{test_img.shape[0]}",
+        'resized_size': f"{resized.shape[1]}x{resized.shape[0]}",
+        'resize_working': resized.shape == (150, 200, 3)
+    })
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
+        logger.info("=== UPLOAD REQUEST STARTED ===")
         logger.info("Upload request received")
         
         if 'file' not in request.files:
