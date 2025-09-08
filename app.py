@@ -78,6 +78,7 @@ def resize_image(image, target_width=None, target_height=None, maintain_aspect_r
     
     return resized
 
+
 def replace_colors(image_path, blue_to_red=True, beige_to_navy=True):
     """
     Replace colors in the image:
@@ -307,10 +308,12 @@ def upload_file():
         to_color = request.form.get('to_color', '#d32f2f')
         tolerance = int(request.form.get('tolerance', 30))
         
-        # Get output dimension options
+        # Get output settings
         output_width = request.form.get('output_width')
         output_height = request.form.get('output_height')
         maintain_aspect_ratio = request.form.get('maintain_aspect_ratio', 'false').lower() == 'true'
+        image_quality = int(request.form.get('image_quality', 95))
+        image_format = request.form.get('image_format', 'png')
         
         # Convert to integers if provided
         if output_width:
@@ -328,6 +331,7 @@ def upload_file():
         tolerance = max(10, min(100, tolerance))
         
         logger.info(f"Processing image with colors: {from_color} -> {to_color}, tolerance: {tolerance}")
+        logger.info(f"Output settings: {output_width}x{output_height}, quality: {image_quality}, format: {image_format}")
         
         # Process the image
         processed_img = replace_colors_advanced(filepath, from_color, to_color, tolerance)
@@ -336,10 +340,20 @@ def upload_file():
         if output_width or output_height:
             processed_img = resize_image(processed_img, output_width, output_height, maintain_aspect_ratio)
         
-        # Save processed image
-        output_filename = f"processed_{filename}"
+        # Save processed image with quality settings
+        output_filename = f"processed_{filename.rsplit('.', 1)[0]}.{image_format}"
         output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
-        success = cv2.imwrite(output_path, processed_img)
+        
+        # Set compression parameters based on format
+        if image_format.lower() in ['jpg', 'jpeg']:
+            success = cv2.imwrite(output_path, processed_img, [cv2.IMWRITE_JPEG_QUALITY, image_quality])
+        elif image_format.lower() == 'png':
+            # PNG compression level (0-9, where 9 is highest compression)
+            compression_level = int((100 - image_quality) / 10)
+            success = cv2.imwrite(output_path, processed_img, [cv2.IMWRITE_PNG_COMPRESSION, compression_level])
+        else:
+            # For other formats (BMP, TIFF), save without compression
+            success = cv2.imwrite(output_path, processed_img)
         
         if not success:
             logger.error(f"Failed to save processed image: {output_path}")

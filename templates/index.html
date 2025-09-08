@@ -75,23 +75,48 @@
                             <span id="toleranceValue">30</span>
                         </div>
                         
-                        <div class="output-dimensions">
-                            <h4>Output Image Dimensions (Optional)</h4>
-                            <div class="dimension-inputs">
-                                <div class="dimension-group">
-                                    <label for="outputWidth">Width (pixels):</label>
-                                    <input type="number" id="outputWidth" name="output_width" min="1" max="10000" placeholder="Auto" class="dimension-input">
+                        <div class="output-settings">
+                            <h4>Output Settings</h4>
+                            <div class="settings-grid">
+                                <div class="setting-group">
+                                    <h5>Image Size</h5>
+                                    <div class="size-inputs">
+                                        <div class="input-row">
+                                            <label for="outputWidth">Width (pixels):</label>
+                                            <input type="number" id="outputWidth" name="output_width" min="1" max="10000" placeholder="Auto" class="size-input">
+                                        </div>
+                                        <div class="input-row">
+                                            <label for="outputHeight">Height (pixels):</label>
+                                            <input type="number" id="outputHeight" name="output_height" min="1" max="10000" placeholder="Auto" class="size-input">
+                                        </div>
+                                        <div class="checkbox-row">
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" id="maintainAspectRatio" checked>
+                                                <span class="checkmark"></span>
+                                                Maintain aspect ratio
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="dimension-group">
-                                    <label for="outputHeight">Height (pixels):</label>
-                                    <input type="number" id="outputHeight" name="output_height" min="1" max="10000" placeholder="Auto" class="dimension-input">
-                                </div>
-                                <div class="dimension-options">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="maintainAspectRatio" checked>
-                                        <span class="checkmark"></span>
-                                        Maintain aspect ratio
-                                    </label>
+                                
+                                <div class="setting-group">
+                                    <h5>Image Quality</h5>
+                                    <div class="quality-inputs">
+                                        <div class="input-row">
+                                            <label for="imageQuality">Quality (1-100):</label>
+                                            <input type="range" id="imageQuality" name="image_quality" min="1" max="100" value="95" class="quality-slider">
+                                            <span id="qualityValue">95</span>
+                                        </div>
+                                        <div class="input-row">
+                                            <label for="imageFormat">Output Format:</label>
+                                            <select id="imageFormat" name="image_format" class="format-select">
+                                                <option value="png">PNG (Lossless)</option>
+                                                <option value="jpg">JPEG (Compressed)</option>
+                                                <option value="bmp">BMP (Uncompressed)</option>
+                                                <option value="tiff">TIFF (High Quality)</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -187,6 +212,7 @@
         <p>Our AI is analyzing colors and creating your variant...</p>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -262,10 +288,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const toleranceValue = document.getElementById('toleranceValue');
     const presetButtons = document.querySelectorAll('.preset-btn');
     
-    // Dimension inputs
+    // Output settings elements
     const outputWidth = document.getElementById('outputWidth');
     const outputHeight = document.getElementById('outputHeight');
     const maintainAspectRatio = document.getElementById('maintainAspectRatio');
+    const imageQuality = document.getElementById('imageQuality');
+    const qualityValue = document.getElementById('qualityValue');
+    const imageFormat = document.getElementById('imageFormat');
 
     // Sync color picker with hex input
     fromColorInput.addEventListener('input', function() {
@@ -296,6 +325,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Tolerance slider
     toleranceSlider.addEventListener('input', function() {
         toleranceValue.textContent = this.value;
+    });
+
+    // Quality slider
+    imageQuality.addEventListener('input', function() {
+        qualityValue.textContent = this.value;
     });
 
     // Aspect ratio functionality
@@ -352,9 +386,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Get dimension values
+        // Get and validate output settings
         const width = outputWidth.value ? parseInt(outputWidth.value) : null;
         const height = outputHeight.value ? parseInt(outputHeight.value) : null;
+        const quality = parseInt(imageQuality.value);
+        const format = imageFormat.value;
         
         // Validate dimensions
         if (width && (width < 1 || width > 10000)) {
@@ -366,10 +402,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Add dimension data to form
+        // Add settings to form data
         if (width) formData.append('output_width', width);
         if (height) formData.append('output_height', height);
         formData.append('maintain_aspect_ratio', maintainAspectRatio.checked);
+        formData.append('image_quality', quality);
+        formData.append('image_format', format);
 
         loadingOverlay.style.display = 'flex';
         
