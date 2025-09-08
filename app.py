@@ -292,14 +292,34 @@ def test_resize():
     # Create a test image (100x100)
     test_img = np.ones((100, 100, 3), dtype=np.uint8) * 128  # Gray image
     
-    # Test resize to 200x150
-    resized = resize_image(test_img, 200, 150, False)
+    # Test resize to 200x150 with exact dimensions
+    resized1 = resize_image(test_img, 200, 150, False)
+    
+    # Test resize to 480x732 with exact dimensions (your example)
+    resized2 = resize_image(test_img, 480, 732, False)
+    
+    # Test with only height specified
+    resized3 = resize_image(test_img, None, 500, False)
+    
+    # Test with only width specified  
+    resized4 = resize_image(test_img, 300, None, False)
     
     return jsonify({
         'status': 'success',
-        'original_size': f"{test_img.shape[1]}x{test_img.shape[0]}",
-        'resized_size': f"{resized.shape[1]}x{resized.shape[0]}",
-        'resize_working': resized.shape == (150, 200, 3)
+        'test1_original': f"{test_img.shape[1]}x{test_img.shape[0]}",
+        'test1_resized': f"{resized1.shape[1]}x{resized1.shape[0]}",
+        'test1_expected': "200x150",
+        'test1_correct': resized1.shape == (150, 200, 3),
+        'test2_original': f"{test_img.shape[1]}x{test_img.shape[0]}",
+        'test2_resized': f"{resized2.shape[1]}x{resized2.shape[0]}",
+        'test2_expected': "480x732",
+        'test2_correct': resized2.shape == (732, 480, 3),
+        'test3_height_only': f"{resized3.shape[1]}x{resized3.shape[0]}",
+        'test3_expected': "100x500",
+        'test3_correct': resized3.shape == (500, 100, 3),
+        'test4_width_only': f"{resized4.shape[1]}x{resized4.shape[0]}",
+        'test4_expected': "300x100",
+        'test4_correct': resized4.shape == (100, 300, 3)
     })
 
 @app.route('/upload', methods=['POST'])
