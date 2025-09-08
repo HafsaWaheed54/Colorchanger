@@ -5,17 +5,29 @@ import numpy as np
 from PIL import Image
 import io
 import base64
+import tempfile
+import logging
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['OUTPUT_FOLDER'] = 'outputs'
+
+# For Vercel deployment, use temp directories
+if os.environ.get('VERCEL'):
+    app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
+    app.config['OUTPUT_FOLDER'] = tempfile.gettempdir()
+else:
+    app.config['UPLOAD_FOLDER'] = 'uploads'
+    app.config['OUTPUT_FOLDER'] = 'outputs'
+    # Create directories if they don't exist
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Create directories if they don't exist
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff'}
 
@@ -193,21 +205,48 @@ def replace_colors_advanced(image_path, from_color_hex, to_color_hex, tolerance=
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        logger.error(f"Error rendering index: {str(e)}")
+        return f"Error loading page: {str(e)}", 500
+
+@app.route('/health')
+def health():
+    return jsonify({'status': 'healthy', 'message': 'Design Color Variant Generator is running'})
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
-    if file and allowed_file(file.filename):
+    try:
+        logger.info("Upload request received")
+        
+        if 'file' not in request.files:
+            logger.error("No file in request")
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            logger.error("No filename provided")
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not file or not allowed_file(file.filename):
+            logger.error(f"Invalid file type: {file.filename}")
+            return jsonify({'error': 'Invalid file type. Please upload PNG, JPG, JPEG, GIF, BMP, or TIFF files.'}), 400
+        
+        # Generate unique filename to avoid conflicts
+        import uuid
         filename = secure_filename(file.filename)
+        unique_id = str(uuid.uuid4())[:8]
+        filename = f"{unique_id}_{filename}"
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        logger.info(f"Saving file to: {filepath}")
         file.save(filepath)
+        
+        # Verify file was saved and is readable
+        if not os.path.exists(filepath):
+            logger.error(f"File not saved properly: {filepath}")
+            return jsonify({'error': 'Failed to save uploaded file'}), 500
         
         # Get color replacement options
         from_color = request.form.get('from_color', '#1a237e')
@@ -223,34 +262,48 @@ def upload_file():
         # Clamp tolerance between 10 and 100
         tolerance = max(10, min(100, tolerance))
         
-        try:
-            # Process the image
-            processed_img = replace_colors_advanced(filepath, from_color, to_color, tolerance)
-            
-            # Save processed image
-            output_filename = f"processed_{filename}"
-            output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
-            cv2.imwrite(output_path, processed_img)
-            
-            # Convert to base64 for display
-            _, buffer = cv2.imencode('.png', processed_img)
-            img_base64 = base64.b64encode(buffer).decode('utf-8')
-            
-            return jsonify({
-                'success': True,
-                'message': 'Image processed successfully',
-                'image_data': img_base64,
-                'download_url': url_for('download_file', filename=output_filename)
-            })
-            
-        except Exception as e:
-            return jsonify({'error': f'Error processing image: {str(e)}'}), 500
-    
-    return jsonify({'error': 'Invalid file type'}), 400
+        logger.info(f"Processing image with colors: {from_color} -> {to_color}, tolerance: {tolerance}")
+        
+        # Process the image
+        processed_img = replace_colors_advanced(filepath, from_color, to_color, tolerance)
+        
+        # Save processed image
+        output_filename = f"processed_{filename}"
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+        success = cv2.imwrite(output_path, processed_img)
+        
+        if not success:
+            logger.error(f"Failed to save processed image: {output_path}")
+            return jsonify({'error': 'Failed to save processed image'}), 500
+        
+        # Convert to base64 for display
+        _, buffer = cv2.imencode('.png', processed_img)
+        img_base64 = base64.b64encode(buffer).decode('utf-8')
+        
+        logger.info("Image processed successfully")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Image processed successfully',
+            'image_data': img_base64,
+            'download_url': url_for('download_file', filename=output_filename)
+        })
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in upload_file: {str(e)}", exc_info=True)
+        return jsonify({'error': f'Error processing image: {str(e)}'}), 500
 
 @app.route('/download/<filename>')
 def download_file(filename):
-    return send_file(os.path.join(app.config['OUTPUT_FOLDER'], filename), as_attachment=True)
+    try:
+        file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+        if not os.path.exists(file_path):
+            logger.error(f"Download file not found: {file_path}")
+            return jsonify({'error': 'File not found'}), 404
+        return send_file(file_path, as_attachment=True)
+    except Exception as e:
+        logger.error(f"Error downloading file {filename}: {str(e)}")
+        return jsonify({'error': 'Download failed'}), 500
 
 @app.route('/demo')
 def demo():
