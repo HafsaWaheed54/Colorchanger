@@ -67,8 +67,8 @@ def resize_image(image, target_width=None, target_height=None, maintain_aspect_r
             logger.info(f"Scaled by height: {scale:.3f}")
     else:
         # Use exact dimensions (may distort image)
-        new_width = target_width if target_width else width
-        new_height = target_height if target_height else height
+        new_width = target_width if target_width is not None else width
+        new_height = target_height if target_height is not None else height
         logger.info(f"Using exact dimensions: {new_width}x{new_height} (aspect ratio may be distorted)")
     
     # Ensure minimum size of 1 pixel
@@ -313,20 +313,22 @@ def upload_file():
         tolerance = int(request.form.get('tolerance', 30))
         
         # Get output settings
-        output_width = request.form.get('output_width', '').strip()
-        output_height = request.form.get('output_height', '').strip()
+        output_width_raw = request.form.get('output_width', '').strip()
+        output_height_raw = request.form.get('output_height', '').strip()
         maintain_aspect_ratio = request.form.get('maintain_aspect_ratio', 'false').lower() == 'true'
         image_quality = int(request.form.get('image_quality', 95))
         image_format = request.form.get('image_format', 'png')
         
+        logger.info(f"Raw form data - width: '{output_width_raw}', height: '{output_height_raw}', maintain_aspect: {maintain_aspect_ratio}")
+        
         # Convert to integers if provided and not empty
-        if output_width and output_width != '':
-            output_width = int(output_width)
+        if output_width_raw and output_width_raw != '':
+            output_width = int(output_width_raw)
         else:
             output_width = None
             
-        if output_height and output_height != '':
-            output_height = int(output_height)
+        if output_height_raw and output_height_raw != '':
+            output_height = int(output_height_raw)
         else:
             output_height = None
         
@@ -347,7 +349,7 @@ def upload_file():
         processed_img = replace_colors_advanced(filepath, from_color, to_color, tolerance)
         
         # Resize image if dimensions are specified
-        if output_width or output_height:
+        if output_width is not None or output_height is not None:
             logger.info(f"Resizing image: width={output_width}, height={output_height}, maintain_aspect={maintain_aspect_ratio}")
             processed_img = resize_image(processed_img, output_width, output_height, maintain_aspect_ratio)
         else:
