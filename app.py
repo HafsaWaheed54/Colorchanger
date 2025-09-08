@@ -309,17 +309,22 @@ def upload_file():
         tolerance = int(request.form.get('tolerance', 30))
         
         # Get output settings
-        output_width = request.form.get('output_width')
-        output_height = request.form.get('output_height')
+        output_width = request.form.get('output_width', '').strip()
+        output_height = request.form.get('output_height', '').strip()
         maintain_aspect_ratio = request.form.get('maintain_aspect_ratio', 'false').lower() == 'true'
         image_quality = int(request.form.get('image_quality', 95))
         image_format = request.form.get('image_format', 'png')
         
-        # Convert to integers if provided
-        if output_width:
+        # Convert to integers if provided and not empty
+        if output_width and output_width != '':
             output_width = int(output_width)
-        if output_height:
+        else:
+            output_width = None
+            
+        if output_height and output_height != '':
             output_height = int(output_height)
+        else:
+            output_height = None
         
         # Validate hex colors
         if not from_color.startswith('#') or len(from_color) != 7:
@@ -331,14 +336,18 @@ def upload_file():
         tolerance = max(10, min(100, tolerance))
         
         logger.info(f"Processing image with colors: {from_color} -> {to_color}, tolerance: {tolerance}")
-        logger.info(f"Output settings: {output_width}x{output_height}, quality: {image_quality}, format: {image_format}")
+        logger.info(f"Output settings: width={output_width}, height={output_height}, quality={image_quality}, format={image_format}")
+        logger.info(f"Maintain aspect ratio: {maintain_aspect_ratio}")
         
         # Process the image
         processed_img = replace_colors_advanced(filepath, from_color, to_color, tolerance)
         
         # Resize image if dimensions are specified
         if output_width or output_height:
+            logger.info(f"Resizing image: width={output_width}, height={output_height}, maintain_aspect={maintain_aspect_ratio}")
             processed_img = resize_image(processed_img, output_width, output_height, maintain_aspect_ratio)
+        else:
+            logger.info("No resizing requested - keeping original dimensions")
         
         # Save processed image with quality settings
         output_filename = f"processed_{filename.rsplit('.', 1)[0]}.{image_format}"

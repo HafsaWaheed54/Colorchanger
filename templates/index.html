@@ -403,8 +403,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Add settings to form data
-        if (width) formData.append('output_width', width);
-        if (height) formData.append('output_height', height);
+        formData.append('output_width', width || '');
+        formData.append('output_height', height || '');
         formData.append('maintain_aspect_ratio', maintainAspectRatio.checked);
         formData.append('image_quality', quality);
         formData.append('image_format', format);
