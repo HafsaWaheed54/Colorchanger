@@ -51,9 +51,9 @@
                             <div class="color-input-group">
                                 <label class="color-label">From Color:</label>
                                 <div class="color-input-wrapper">
-                                    <input type="color" id="fromColor" name="from_color" value="#1a237e" class="color-input">
-                                    <span class="color-preview" id="fromColorPreview" style="background-color: #1a237e;"></span>
-                                    <input type="text" id="fromColorHex" name="from_color_hex" value="#1a237e" class="color-hex-input" placeholder="#1a237e">
+                                    <input type="color" id="fromColor" name="from_color" class="color-input">
+                                    <span class="color-preview" id="fromColorPreview"></span>
+                                    <input type="text" id="fromColorHex" name="from_color_hex" class="color-hex-input" placeholder="#000000">
                                 </div>
                             </div>
                             <div class="arrow-icon">
@@ -62,9 +62,9 @@
                             <div class="color-input-group">
                                 <label class="color-label">To Color:</label>
                                 <div class="color-input-wrapper">
-                                    <input type="color" id="toColor" name="to_color" value="#d32f2f" class="color-input">
-                                    <span class="color-preview" id="toColorPreview" style="background-color: #d32f2f;"></span>
-                                    <input type="text" id="toColorHex" name="to_color_hex" value="#d32f2f" class="color-hex-input" placeholder="#d32f2f">
+                                    <input type="color" id="toColor" name="to_color" class="color-input">
+                                    <span class="color-preview" id="toColorPreview"></span>
+                                    <input type="text" id="toColorHex" name="to_color_hex" class="color-hex-input" placeholder="#000000">
                                 </div>
                             </div>
                         </div>
@@ -213,7 +213,6 @@
         <p>Our AI is analyzing colors and creating your variant...</p>
     </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
@@ -267,18 +266,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 processBtn.disabled = false;
                 fileUploadArea.classList.add('file-selected');
                 
-                // Calculate aspect ratio when image loads
                 originalImage.onload = function() {
                     originalAspectRatio = this.naturalWidth / this.naturalHeight;
-                    console.log('Original image dimensions:', this.naturalWidth, 'x', this.naturalHeight);
-                    console.log('Aspect ratio:', originalAspectRatio);
                 };
             };
             reader.readAsDataURL(file);
         }
     }
 
-    // Color picker functionality
+    // Color picker & hex handling
     const fromColorInput = document.getElementById('fromColor');
     const toColorInput = document.getElementById('toColor');
     const fromColorHex = document.getElementById('fromColorHex');
@@ -288,34 +284,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const toleranceSlider = document.getElementById('tolerance');
     const toleranceValue = document.getElementById('toleranceValue');
     const presetButtons = document.querySelectorAll('.preset-btn');
-    
-    // Output settings elements
-    const outputWidth = document.getElementById('outputWidth');
-    const outputHeight = document.getElementById('outputHeight');
-    const maintainAspectRatio = document.getElementById('maintainAspectRatio');
-    const imageQuality = document.getElementById('imageQuality');
-    const qualityValue = document.getElementById('qualityValue');
-    const imageFormat = document.getElementById('imageFormat');
 
-    // Sync color picker with hex input
     fromColorInput.addEventListener('input', function() {
         fromColorHex.value = this.value;
         fromColorPreview.style.backgroundColor = this.value;
     });
-
     toColorInput.addEventListener('input', function() {
         toColorHex.value = this.value;
         toColorPreview.style.backgroundColor = this.value;
     });
 
-    // Sync hex input with color picker
     fromColorHex.addEventListener('input', function() {
         if (this.value.match(/^#[0-9A-F]{6}$/i)) {
             fromColorInput.value = this.value;
             fromColorPreview.style.backgroundColor = this.value;
         }
     });
-
     toColorHex.addEventListener('input', function() {
         if (this.value.match(/^#[0-9A-F]{6}$/i)) {
             toColorInput.value = this.value;
@@ -323,43 +307,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Tolerance slider
     toleranceSlider.addEventListener('input', function() {
         toleranceValue.textContent = this.value;
     });
-
-    // Quality slider
-    imageQuality.addEventListener('input', function() {
-        qualityValue.textContent = this.value;
-    });
-
-    // Aspect ratio functionality
-    let originalAspectRatio = 1;
-    
-    function updateAspectRatio() {
-        if (maintainAspectRatio.checked && originalAspectRatio > 0) {
-            if (outputWidth.value && !outputHeight.value) {
-                outputHeight.value = Math.round(outputWidth.value / originalAspectRatio);
-            } else if (outputHeight.value && !outputWidth.value) {
-                outputWidth.value = Math.round(outputHeight.value * originalAspectRatio);
-            }
-        }
-    }
-    
-    outputWidth.addEventListener('input', updateAspectRatio);
-    outputHeight.addEventListener('input', updateAspectRatio);
-    maintainAspectRatio.addEventListener('change', updateAspectRatio);
 
     // Preset buttons
     presetButtons.forEach(button => {
         button.addEventListener('click', function() {
             const fromColor = this.getAttribute('data-from');
             const toColor = this.getAttribute('data-to');
-            
             fromColorInput.value = fromColor;
             fromColorHex.value = fromColor;
             fromColorPreview.style.backgroundColor = fromColor;
-            
             toColorInput.value = toColor;
             toColorHex.value = toColor;
             toColorPreview.style.backgroundColor = toColor;
@@ -369,79 +328,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form submission
     uploadForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-        
         const formData = new FormData(uploadForm);
         const file = fileInput.files[0];
-        
         if (!file) {
             alert('Please select a file first');
             return;
         }
 
-        // Validate colors
-        const fromColor = fromColorHex.value;
-        const toColor = toColorHex.value;
-        
-        if (!fromColor.match(/^#[0-9A-F]{6}$/i) || !toColor.match(/^#[0-9A-F]{6}$/i)) {
+        // Validate colors only if filled
+        const fromColor = fromColorHex.value.trim();
+        const toColor = toColorHex.value.trim();
+        if ((fromColor && !fromColor.match(/^#[0-9A-F]{6}$/i)) ||
+            (toColor && !toColor.match(/^#[0-9A-F]{6}$/i))) {
             alert('Please enter valid hex colors (e.g., #ff0000)');
             return;
         }
-
-        // Get and validate output settings
-        const width = outputWidth.value ? parseInt(outputWidth.value) : null;
-        const height = outputHeight.value ? parseInt(outputHeight.value) : null;
-        const quality = parseInt(imageQuality.value);
-        const format = imageFormat.value;
-        
-        // Validate dimensions
-        if (width && (width < 1 || width > 10000)) {
-            alert('Width must be between 1 and 10000 pixels');
-            return;
-        }
-        if (height && (height < 1 || height > 10000)) {
-            alert('Height must be between 1 and 10000 pixels');
-            return;
-        }
-        
-        // Add settings to form data
-        formData.append('output_width', width ? width.toString() : '');
-        formData.append('output_height', height ? height.toString() : '');
-        formData.append('maintain_aspect_ratio', maintainAspectRatio.checked);
-        formData.append('image_quality', quality);
-        formData.append('image_format', format);
-        
-        // Debug logging
-        console.log('Form data being sent:', {
-            width: width,
-            height: height,
-            maintain_aspect: maintainAspectRatio.checked,
-            quality: quality,
-            format: format
-        });
+        formData.append('from_color', fromColor || '');
+        formData.append('to_color', toColor || '');
 
         loadingOverlay.style.display = 'flex';
-        
         try {
             const response = await fetch('/upload', {
                 method: 'POST',
                 body: formData
             });
-
-            // Check if response is ok
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            // Check if response is JSON
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                const text = await response.text();
-                console.error('Non-JSON response:', text);
-                throw new Error('Server returned non-JSON response. Please try again.');
-            }
-
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
             const result = await response.json();
-            
             if (result.success) {
                 processedImage.src = 'data:image/png;base64,' + result.image_data;
                 downloadUrl = result.download_url;
@@ -450,19 +362,16 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 alert('Error: ' + result.error);
             }
-        } catch (error) {
-            console.error('Upload error:', error);
-            alert('Error processing image: ' + error.message);
+        } catch (err) {
+            console.error(err);
+            alert('Error processing image: ' + err.message);
         } finally {
             loadingOverlay.style.display = 'none';
         }
     });
 
-    // Download functionality
     downloadBtn.addEventListener('click', function() {
-        if (downloadUrl) {
-            window.open(downloadUrl, '_blank');
-        }
+        if (downloadUrl) window.open(downloadUrl, '_blank');
     });
 });
 </script>
